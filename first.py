@@ -1,5 +1,8 @@
 import pymysql
 import configparser
+import matplotlib.pyplot as plot
+from matplotlib.font_manager import FontProperties
+from pylab import *
 import jieba
 #E:\pythonanaconda\Lib\site-packages\jieba 结巴库下载包的位置
 #连接数据库
@@ -46,8 +49,8 @@ def getMessage(begin,count,message):
             count += 1
     return newresults
 
-#工资数据处理
-def dealAveMoney(message,index): #信息列表 工资信息所在的下标
+#工资数据清洗
+def washAveMoney(message,index): #信息列表 工资信息所在的下标
     for i in range(len(message)):
         unit = 0 #单位
         time = 1 #/年 /月
@@ -72,12 +75,60 @@ def dealAveMoney(message,index): #信息列表 工资信息所在的下标
         s = int (s * unit / time)
         message[i][index] = s
 
+#工资数据处理
+def dealMoney(message,index,index2):
+    words = []
+    for i in range(0, len(message)):
+        words.append(message[i][index])
+    results = {}
+    i = 0
+    for word in words:
+        if len(words) == 1:
+            continue
+        else:
+            try:
+                number = int(message[i][index2])
+            except(Exception):
+                pass
+            if results.get(word) != None:
+                results[word] = (results.get(word, 0) + number) / 2
+            else:
+                results[word] = results.get(word, 0) + number
+        i += 1
+    items = []
+    for i, j in results.items():
+        item = []
+        item.append(i)
+        item.append(int(j))
+        items.append(item)
+    items.sort(key=lambda x: x[1], reverse=False)
+    print("工资分析")
+    for i in range(len(items)):
+        word, count = items[i]
+        print("{0:<10}{1:>5}".format(word, count))
+    return items
+
+#柱状图表示工资平均水平
+def showMoney(message):
+    #记得这里需要使用plt 不能是plot
+    name_list = []
+    num_list = []
+    for i in range(0, len(message), 1):
+        name_list.append(message[i][0])
+        num_list.append(message[i][1])
+    plt.rcParams['font.sans-serif'] = 'SimHei'
+    plt.figure(figsize=(10,10))
+    plt.barh(name_list, num_list, alpha=0.6, facecolor = 'deeppink', edgecolor = 'deeppink', label='Jay income')
+    plt.title('各职业的平均工资水平',fontsize=20)#标题，并设定字号大小
+    plt.savefig('./各职业的平均工资水平')
+    plt.show()
+
 #岗位要求分析
 def dealText(message,index):
     pass
 
-#职位分析(未优化) message为列表。index表示workname下标，index2表示
-def dealWorkName(message,index,index2):
+#职位分析(未优化) message为列表。index表示workname下标，index2表示number下标
+def dealWorkName(message, index, index2):
     words = []
     for i in range(0,len(message)):
         words.append(message[i][index])
@@ -91,11 +142,11 @@ def dealWorkName(message,index,index2):
                 number = 2
             else:
                 try:
-                    number = int(number)
+                    number = int(message[i][index2])
                 except(Exception):
                     number = 1
-            results[word] = results.get(word, number) + number
-    print(results)
+            results[word] = results.get(word, 0) + number
+        i += 1
     items = []
     for i,j in results.items():
         item = []
@@ -103,9 +154,10 @@ def dealWorkName(message,index,index2):
         item.append(int(j))
         items.append(item)
     items.sort(key=lambda x:x[1], reverse=True)
-    for i in range(2):
+    for i in range(len(items)):
         word,count = items[i]
         print("{0:<10}{1:>5}".format(word, count))
+    return items
 
 #职位信息清洗
 def washWorkName(message,index):
@@ -134,16 +186,38 @@ def washWorkName(message,index):
         if flag == False:
             message[j][index] = "其他"
 
+#职位信息饼状图与工资
+def showWorkName(workname):
+    sum = 0
+    label = []
+    values = []
+    explode = []
+    for i in range(0,len(workname)):
+        sum = sum + workname[i][1]
+        label.append(workname[i][0])
+        values.append(workname[i][1])
+        explode.append(0.01)
+    print(sum)
+    plot.rcParams['font.sans-serif'] = 'SimHei' #设置中文显示
+    plot.figure(figsize=(18,18))
+    plot.pie(values,explode=explode,labels=label,autopct="%1.1f%%")
+    plot.title("职位饼图")
+    plot.savefig('./职位饼图')
+    plot.show()
+
 
 if __name__ == '__main__':
     #message = ['company','money','message','workname']
-    message = ['workname','number']
-    list = getMessage(0,2,message)
-    # dealAveMoney(list,1)
-    # dealText(list,2)
-    # print(list)
-    washWorkName(list,0)
-    dealWorkName(list,0,1)
+    message = ['workname','number','money']
+    list = getMessage(0, 500, message)
+    washAveMoney(list,2)
+    # # dealText(list,2)
+    # # print(list)
+    washWorkName(list, 0)
+    workname = dealWorkName(list, 0, 1)
+    money = dealMoney(list, 0, 2)
+    showMoney(money)
+    # showWorkName(workname)
     #print(jieba.lcut('岗位职责：参与“互联网＋可信身份认证服务平台”的开发和建设。任职要求：1.2年以上java开发经验（不含实习期），熟悉软件开发流程，有良好的代码习惯；2．掌握主流web服务框架，熟悉客户端和服务端的数据交互开发，有RestfulAPI开发经验者优先；3.熟悉常用数据库，如SQLServer、MySql、Oracle等，有一定的数据库设计和优化能力；4．有实际的高并发或者大数据量开发项目工作经验者优先；5．能较好地与团队合作，思路清晰，有责任心；6.计算机相关专业，本科及以上学历职能类别：Java开发工程师微信分享'))
     # print(jieba.lcut("软件工程中级证书，软考中级通过，计算机专业，有RestfulAPI开发经验者优先,1.2年以上java开发经验（不含实习期）"))
     # jieba.load_userdict("E:\pythonanaconda\Lib\site-packages\jieba\dict2.txt")
