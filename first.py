@@ -123,9 +123,51 @@ def showMoney(message):
     plt.savefig('./各职业的平均工资水平')
     plt.show()
 
+def washText(message,index):
+    jieba.load_userdict("E:\pythonanaconda\Lib\site-packages\jieba\dict2.txt")
+    for i in range(len(message)):
+        print(jieba.lcut(message[i][index]))
+
 #岗位要求分析
 def dealText(message,index):
-    pass
+    cf = configparser.ConfigParser()
+    cf.read('config/workmessage.ini', encoding='UTF-8')
+    allType = []
+    allCount = {}
+    for i in range(0, 263, 1):
+        allType.append(cf.get('workmessage', str(i)))
+    for i in allType:
+        if i.find('/') != -1:
+            i = i.split('/')
+            allCount[i[0].lower()] = 0
+        else:
+            allCount[i.lower()] = 0
+    for i in range(len(message)):
+        for j in allType:
+            if j.find('/') != -1:
+                j2 = j.split('/')
+                for k in j2:
+                    message[i][index] = str(message[i][index]).lower()
+                    if str(message[i][index]).find(k.lower()) != -1:
+                        allCount[j2[0].lower()] += 1
+                        break
+            else:
+                # if str(message[i][index]).lower().find(allType[220].lower()) != -1:
+                #     print(message[i][index])
+                #     allCount[allType[220].lower()] += 1
+                #     break
+                if str(message[i][index]).lower().find(j.lower()) != -1:
+                    allCount[j.lower()] += 1
+    items = []
+    for i, j in allCount.items():
+        item = []
+        item.append(i)
+        item.append(int(j))
+        items.append(item)
+    items.sort(key=lambda x: x[1], reverse=True)
+    for i,j in items:
+        print(str(i) + "=" + str(j))
+    return items
 
 #职位分析(未优化) message为列表。index表示workname下标，index2表示number下标
 def dealWorkName(message, index, index2):
@@ -198,26 +240,27 @@ def showWorkName(workname):
         values.append(workname[i][1])
         explode.append(0.01)
     print(sum)
-    plot.rcParams['font.sans-serif'] = 'SimHei' #设置中文显示
-    plot.figure(figsize=(18,18))
-    plot.pie(values,explode=explode,labels=label,autopct="%1.1f%%")
-    plot.title("职位饼图")
-    plot.savefig('./职位饼图')
-    plot.show()
-
+    plt.rcParams['font.sans-serif'] = 'SimHei' #设置中文显示
+    plt.figure(figsize=(20,20))
+    plt.pie(values,explode=explode,labels=label,autopct="%1.1f%%")
+    plt.title("职位饼图")
+    plt.savefig('./职位饼图')
+    plt.show()
 
 if __name__ == '__main__':
     #message = ['company','money','message','workname']
-    message = ['workname','number','money']
+    message = ['workname','number','money','message']
     list = getMessage(0, 500, message)
-    washAveMoney(list,2)
-    # # dealText(list,2)
-    # # print(list)
-    washWorkName(list, 0)
-    workname = dealWorkName(list, 0, 1)
-    money = dealMoney(list, 0, 2)
-    showMoney(money)
+    # washAveMoney(list,2)
+    # # # dealText(list,2)
+    # # # print(list)
+    # washWorkName(list, 0)
+    # workname = dealWorkName(list, 0, 1)
+    # money = dealMoney(list, 0, 2)
+    # # showMoney(money)
     # showWorkName(workname)
+    # washText(list,3)
+    dealText(list,3)
     #print(jieba.lcut('岗位职责：参与“互联网＋可信身份认证服务平台”的开发和建设。任职要求：1.2年以上java开发经验（不含实习期），熟悉软件开发流程，有良好的代码习惯；2．掌握主流web服务框架，熟悉客户端和服务端的数据交互开发，有RestfulAPI开发经验者优先；3.熟悉常用数据库，如SQLServer、MySql、Oracle等，有一定的数据库设计和优化能力；4．有实际的高并发或者大数据量开发项目工作经验者优先；5．能较好地与团队合作，思路清晰，有责任心；6.计算机相关专业，本科及以上学历职能类别：Java开发工程师微信分享'))
     # print(jieba.lcut("软件工程中级证书，软考中级通过，计算机专业，有RestfulAPI开发经验者优先,1.2年以上java开发经验（不含实习期）"))
     # jieba.load_userdict("E:\pythonanaconda\Lib\site-packages\jieba\dict2.txt")
