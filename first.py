@@ -49,6 +49,20 @@ def getMessage(begin,count,message):
             count += 1
     return newresults
 
+#存入数据库
+def saveMessage(message):
+    connection = linkMysql()
+    # 查询数据库
+    for i in message:
+        s = "('" + str(i[0]) + "'"
+        for j in range(1, len(i)):
+            s = s + ',' + "'" + str(i[j]) + "'"
+        s = s + ')'
+        with connection.cursor() as cursor:
+            sql = "insert into jobhunterWash(workname,money,company,address,experience,record,number,time,message) values" + s
+            cursor.execute(sql)
+            connection.commit()
+
 #工资数据清洗
 def washAveMoney(message,index): #信息列表 工资信息所在的下标
     for i in range(len(message)):
@@ -123,10 +137,27 @@ def showMoney(message):
     plt.savefig('./各职业的平均工资水平')
     plt.show()
 
+#清洗职位要求
 def washText(message,index):
-    jieba.load_userdict("E:\pythonanaconda\Lib\site-packages\jieba\dict2.txt")
+    cf = configparser.ConfigParser()
+    cf.read('config/workmessage.ini', encoding='UTF-8')
+    allType = []
+    for i in range(0, 263, 1):
+        allType.append(cf.get('workmessage', str(i)))
     for i in range(len(message)):
-        print(jieba.lcut(message[i][index]))
+        s = ''
+        for j in allType:
+            if j.find('/') != -1:
+                j2 = j.split('/')
+                for k in j2:
+                    message[i][index] = str(message[i][index]).lower()
+                    if str(message[i][index]).find(k.lower()) != -1:
+                        s = s + j2[0].lower() + ','
+                        break
+            else:
+                if str(message[i][index]).lower().find(j.lower()) != -1:
+                    s = s + j.lower() + ','
+        message[i][index] = s
 
 #岗位要求分析
 def dealText(message,index):
@@ -152,10 +183,6 @@ def dealText(message,index):
                         allCount[j2[0].lower()] += 1
                         break
             else:
-                # if str(message[i][index]).lower().find(allType[220].lower()) != -1:
-                #     print(message[i][index])
-                #     allCount[allType[220].lower()] += 1
-                #     break
                 if str(message[i][index]).lower().find(j.lower()) != -1:
                     allCount[j.lower()] += 1
     items = []
@@ -202,7 +229,7 @@ def dealWorkName(message, index, index2):
     return items
 
 #职位信息清洗
-def washWorkName(message,index):
+def washWorkName(message, index):
     cf = configparser.ConfigParser()
     cf.read('config/workname.ini',encoding='UTF-8')
     allType = []
@@ -228,6 +255,12 @@ def washWorkName(message,index):
         if flag == False:
             message[j][index] = "其他"
 
+#清洗‘若干’这个人数
+def washNumber(message, index):
+    for i in message:
+        if i[index] == '若干':
+            i[index] = 2
+
 #职位信息饼状图与工资
 def showWorkName(workname):
     sum = 0
@@ -249,8 +282,15 @@ def showWorkName(workname):
 
 if __name__ == '__main__':
     #message = ['company','money','message','workname']
-    message = ['workname','number','money','message']
+    message = ['workname', 'money', 'company', 'address', 'experience', 'record', 'number', 'time', 'message']
     list = getMessage(0, 500, message)
+    washAveMoney(list, 1)
+    washWorkName(list, 0)
+    washText(list, 8)
+    washNumber(list, 6)
+    saveMessage(list)
+    # for i in list:
+    #     print(i)
     # washAveMoney(list,2)
     # # # dealText(list,2)
     # # # print(list)
@@ -260,7 +300,7 @@ if __name__ == '__main__':
     # # showMoney(money)
     # showWorkName(workname)
     # washText(list,3)
-    dealText(list,3)
+    # dealText(list,3)
     #print(jieba.lcut('岗位职责：参与“互联网＋可信身份认证服务平台”的开发和建设。任职要求：1.2年以上java开发经验（不含实习期），熟悉软件开发流程，有良好的代码习惯；2．掌握主流web服务框架，熟悉客户端和服务端的数据交互开发，有RestfulAPI开发经验者优先；3.熟悉常用数据库，如SQLServer、MySql、Oracle等，有一定的数据库设计和优化能力；4．有实际的高并发或者大数据量开发项目工作经验者优先；5．能较好地与团队合作，思路清晰，有责任心；6.计算机相关专业，本科及以上学历职能类别：Java开发工程师微信分享'))
     # print(jieba.lcut("软件工程中级证书，软考中级通过，计算机专业，有RestfulAPI开发经验者优先,1.2年以上java开发经验（不含实习期）"))
     # jieba.load_userdict("E:\pythonanaconda\Lib\site-packages\jieba\dict2.txt")
