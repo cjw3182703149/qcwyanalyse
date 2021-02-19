@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
-import numpy as np
+import scipy as sc
 tf.compat.v1.disable_eager_execution()
 #一共有1个添加神经层、一个输入层、10个隐藏层、1个输出层
 #添加神经层 常见的参数有weights，biases和激励函数
